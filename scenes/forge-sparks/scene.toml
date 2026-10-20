@@ -1,0 +1,15 @@
+# Forge Sparks: sparks and embers rising past dark steel and an embossed shield.
+# Rendered by generators/forge_sparks.py (fully procedural; no theme file needed).
+name = "forge-sparks"
+title = "Forge Sparks"
+themes = ["blackshield", "matte-black"]
+fps = 24
+duration = 8.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: Matte Black's background.
+[match]
+background = "#121212"

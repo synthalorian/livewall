@@ -1,0 +1,15 @@
+# Vaporwave: a floating crystal between two columns over a checkered floor.
+# Rendered by generators/vaporwave.py (fully procedural; no theme file needed).
+name = "vaporwave"
+title = "Vaporwave"
+themes = ["rose-pine"]
+fps = 24
+duration = 10.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: Rose Pine's background.
+[match]
+background = "#191724"

@@ -1,0 +1,15 @@
+# Aurora: curtains of polar light over a still lake.
+# Rendered by generators/aurora.py (fully procedural; no theme file needed).
+name = "aurora"
+title = "Aurora"
+themes = ["nord"]
+fps = 24
+duration = 10.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: Nord's background.
+[match]
+background = "#2e3440"

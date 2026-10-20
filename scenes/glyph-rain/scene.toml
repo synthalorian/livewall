@@ -1,0 +1,15 @@
+# Glyph Rain: columns of teal runes falling through the dark.
+# Rendered by generators/glyph_rain.py (fully procedural; no theme file needed).
+name = "glyph-rain"
+title = "Glyph Rain"
+themes = ["glyphsmith", "osaka-jade"]
+fps = 24
+duration = 8.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: Osaka Jade's background.
+[match]
+background = "#111c18"

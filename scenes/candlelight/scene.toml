@@ -1,0 +1,15 @@
+# Candlelight: one pillar candle in a dark, warm room.
+# Rendered by generators/candlelight.py (fully procedural; no theme file needed).
+name = "candlelight"
+title = "Candlelight"
+themes = ["lampstand", "ristretto"]
+fps = 24
+duration = 8.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: Ristretto's background.
+[match]
+background = "#2c2525"

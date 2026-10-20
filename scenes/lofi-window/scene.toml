@@ -1,0 +1,15 @@
+# Lo-fi Window: a desk by a rainy window at night, with a cat on the sill.
+# Rendered by generators/lofi_window.py (fully procedural; no theme file needed).
+name = "lofi-window"
+title = "Lo-fi Window"
+themes = ["gruvbox"]
+fps = 24
+duration = 8.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: Gruvbox's background.
+[match]
+background = "#282828"

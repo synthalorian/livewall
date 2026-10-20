@@ -1,0 +1,15 @@
+# Ocean Dusk: open sea rolling under a violet-to-amber dusk.
+# Rendered by generators/ocean_dusk.py (fully procedural; no theme file needed).
+name = "ocean-dusk"
+title = "Ocean Dusk"
+themes = ["kanagawa"]
+fps = 24
+duration = 8.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: Kanagawa's background.
+[match]
+background = "#1f1f28"

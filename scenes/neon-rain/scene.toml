@@ -1,0 +1,15 @@
+# Neon Rain: a rainy city at night under flickering neon.
+# Rendered by generators/neon_rain.py (fully procedural; no theme file needed).
+name = "neon-rain"
+title = "Neon Rain"
+themes = ["tokyo-night"]
+fps = 24
+duration = 8.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: Tokyo Night's background.
+[match]
+background = "#1a1b26"

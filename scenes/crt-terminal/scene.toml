@@ -1,0 +1,15 @@
+# CRT Terminal: a green phosphor terminal typing and scrolling on an old CRT.
+# Rendered by generators/crt_terminal.py (fully procedural; no theme file needed).
+name = "crt-terminal"
+title = "CRT Terminal"
+themes = ["hackerman"]
+fps = 24
+duration = 12.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: the generated palette.
+[match]
+background = "#0b0c16"

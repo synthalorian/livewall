@@ -1,0 +1,15 @@
+# Nebula Drift: a slow glide through stars past a violet and teal nebula.
+# Rendered by generators/nebula_drift.py (fully procedural; no theme file needed).
+name = "nebula-drift"
+title = "Nebula Drift"
+themes = ["ethereal"]
+fps = 24
+duration = 8.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: the generated palette.
+[match]
+background = "#0b0e1f"

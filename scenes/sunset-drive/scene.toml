@@ -1,0 +1,15 @@
+# Sunset Drive: a flight down a valley of wireframe mountains toward a low sun.
+# Rendered by generators/sunset_drive.py (fully procedural; no theme file needed).
+name = "sunset-drive"
+title = "Sunset Drive"
+themes = ["catppuccin"]
+fps = 24
+duration = 10.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+
+# Fallback when the theme name is unknown: Catppuccin Mocha's background.
+[match]
+background = "#1e1e2e"
