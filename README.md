@@ -26,7 +26,7 @@ Preview clip: [`scenes/neon-horizon/loop-1080p.webm`](scenes/neon-horizon/loop-1
 ## Install
 
 ```bash
-git clone https://github.com/Blackshield-Company/livewall.git
+git clone https://github.com/synthalorian/livewall.git
 cd livewall
 ./install.sh            # install for the current user
 ./install.sh --enable   # same, and also enable + start the systemd user unit
