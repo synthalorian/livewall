@@ -101,11 +101,140 @@ class SceneTests(Env):
         errs = []
         found = scenes.discover([ROOT / "scenes"], [], errors=errs)
         self.assertEqual(errs, [])
-        self.assertEqual({s.id for s in found}, {"neon-horizon"})
+        self.assertEqual({s.id for s in found}, {"neon-horizon"} | set(PRESETS))
         for s in found:
             self.assertTrue(s.poster and s.poster.is_file(), s.id)
             for v in s.videos.values():
                 self.assertGreater(v.stat().st_size, 100_000, f"{v} looks truncated")
+
+
+# The procedural presets: one 1080p loop each, rendered by generators/<name>.py.
+PRESETS = ("sunset-drive", "neon-rain", "nebula-drift", "aurora", "ocean-dusk", "crt-terminal",
+           "forge-sparks", "glyph-rain", "candlelight", "lofi-window", "vaporwave", "breathe")
+MAX_LOOP_BYTES = 1_600_000           # per 1080p preset loop
+MAX_POSTER_BYTES = 400_000
+MAX_LOOP_SECONDS = 12.0
+
+
+def mp4_duration(path: Path) -> float:
+    """Movie duration from the mvhd box (the loops are written with +faststart)."""
+    import struct
+    head = path.read_bytes()[:1 << 16]
+    i = head.find(b"mvhd")
+    if i < 0:
+        raise ValueError(f"{path}: no mvhd box near the start")
+    version = head[i + 4]
+    if version == 1:
+        timescale, duration = struct.unpack(">IQ", head[i + 24:i + 36])
+    else:
+        timescale, duration = struct.unpack(">II", head[i + 16:i + 24])
+    return duration / timescale
+
+
+class PresetTests(unittest.TestCase):
+    """Every built-in scene validates, stays small, and has its generator."""
+
+    def setUp(self):
+        import tomllib
+        self.dirs = sorted(d for d in (ROOT / "scenes").iterdir() if (d / "scene.toml").is_file())
+        self.tomls = {d.name: tomllib.loads((d / "scene.toml").read_text()) for d in self.dirs}
+
+    def test_every_scene_parses_and_has_files(self):
+        self.assertTrue(set(PRESETS) <= set(self.tomls))
+        for d in self.dirs:
+            with self.subTest(d.name):
+                data = self.tomls[d.name]
+                self.assertEqual(data["name"], d.name)
+                s = scenes.parse_scene(d)
+                self.assertEqual(s.kind, "video")
+                self.assertIn("1920x1080", s.videos)
+                for v in s.videos.values():
+                    self.assertTrue(v.is_file(), v)
+                self.assertTrue(s.poster and s.poster.is_file(), d.name)
+                self.assertEqual(s.poster.read_bytes()[:3], b"\xff\xd8\xff", "poster is not a JPEG")
+                self.assertLessEqual(s.poster.stat().st_size, MAX_POSTER_BYTES)
+                for k, v in s.match.items():
+                    self.assertRegex(v, r"^#[0-9a-f]{6}$", f"{d.name} [match] {k}")
+
+    def test_presets_are_light(self):
+        for name in PRESETS:
+            with self.subTest(name):
+                s = scenes.parse_scene(ROOT / "scenes" / name)
+                self.assertEqual(set(s.videos), {"1920x1080"}, "presets ship one 1080p loop only")
+                v = s.videos["1920x1080"]
+                self.assertGreater(v.stat().st_size, 100_000, f"{v} looks truncated")
+                self.assertLessEqual(v.stat().st_size, MAX_LOOP_BYTES, f"{v} is too big")
+                self.assertTrue(24 <= s.fps <= 30, "presets run at 24-30 fps")
+                self.assertIsNotNone(s.duration)
+                self.assertLessEqual(s.duration, MAX_LOOP_SECONDS)
+                self.assertAlmostEqual(mp4_duration(v), s.duration, delta=0.1)
+
+    def test_no_large_blobs(self):
+        """Only the original scene carries a 2160p loop; nothing in scenes/ is huge."""
+        for f in (ROOT / "scenes").rglob("*"):
+            if f.is_file():
+                limit = 8_000_000 if f.parent.name == "neon-horizon" else MAX_LOOP_BYTES
+                self.assertLessEqual(f.stat().st_size, limit, f)
+        for name in PRESETS:
+            self.assertEqual(list((ROOT / "scenes" / name).glob("*2160*")), [], name)
+
+    def test_theme_names_are_unique(self):
+        owner: dict[str, str] = {}
+        for d in self.dirs:
+            s = scenes.parse_scene(d)
+            for t in s.themes:
+                key = scenes.norm(t)
+                self.assertNotIn(key, owner, f"theme {t!r} claimed by {owner.get(key)} and {d.name}")
+                owner[key] = d.name
+
+    def test_generators_present(self):
+        build = (ROOT / "generators" / "build_presets.sh").read_text()
+        for d in self.dirs:
+            with self.subTest(d.name):
+                gen = ROOT / "generators" / (d.name.replace("-", "_") + ".py")
+                self.assertTrue(gen.is_file(), f"no generator for {d.name}")
+                self.assertIn(f"generators/{gen.name}", (d / "scene.toml").read_text())
+                src = gen.read_text()
+                self.assertIn("def frame(self, t", src)
+                if d.name in PRESETS:
+                    self.assertIn(f'"{d.name} ', build, "preset missing from build_presets.sh")
+
+    def test_readme_lists_every_scene(self):
+        readme = (ROOT / "README.md").read_text()
+        for d in self.dirs:
+            self.assertIn(f"`{d.name}`", readme)
+            self.assertIn(f"scenes/{d.name}/poster.jpg", readme)
+
+
+try:
+    import numpy  # noqa: F401
+    import PIL  # noqa: F401
+    HAVE_GEN_DEPS = True
+except ImportError:
+    HAVE_GEN_DEPS = False
+
+
+@unittest.skipUnless(HAVE_GEN_DEPS, "generators need numpy and Pillow")
+class GeneratorLoopTests(unittest.TestCase):
+    """Render each preset small and check that the loop closes: frame(1) == frame(0)."""
+
+    def test_loops_close(self):
+        import importlib
+        import numpy as np
+        sys.path.insert(0, str(ROOT / "generators"))
+        try:
+            for name in PRESETS:
+                with self.subTest(name):
+                    mod = importlib.import_module(name.replace("-", "_"))
+                    cls = next(v for v in vars(mod).values()
+                               if isinstance(v, type) and v.__module__ == mod.__name__ and hasattr(v, "frame"))
+                    scene = cls(320, 180)
+                    a, b, c = scene.frame(0.0), scene.frame(1.0), scene.frame(0.5)
+                    self.assertEqual(a.shape, (180, 320, 3))
+                    self.assertLess(float(np.abs(a - b).mean()), 0.002, "loop does not close")
+                    self.assertGreater(float(np.abs(a - c).mean()), 0.0005, "nothing moves")
+        finally:
+            sys.path.remove(str(ROOT / "generators"))
 
 
 class ThemeTests(Env):

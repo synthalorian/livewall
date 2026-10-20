@@ -74,6 +74,32 @@ or `$LIVEWALL_THEME`), then by palette (`[match]` keys compared with the theme's
 |---|---|---|---|
 | `neon-horizon` | Neon Horizon | 1080p, 2160p (8 s, 30 fps) | fully procedural, `generators/neon_horizon.py` |
 
+### Presets
+
+Twelve more built-in scenes, each matched to an Omarchy theme. They are all fully
+procedural (one generator script each, no footage or fonts) and built to be light:
+one 1080p H.264 loop of 8 to 12 s at 24 fps, around 1 MB, that plays on any output
+size. Each one wraps seamlessly; `generators/check_seam.py` checks that.
+
+| Preview | Scene | Themes | Loop | Generator |
+|---|---|---|---|---|
+| <img src="scenes/sunset-drive/poster.jpg" width="240" alt="Sunset Drive"> | `sunset-drive`<br>wireframe mountains, low sun | catppuccin | 10 s | `sunset_drive.py` |
+| <img src="scenes/neon-rain/poster.jpg" width="240" alt="Neon Rain"> | `neon-rain`<br>rainy city under neon | tokyo-night | 8 s | `neon_rain.py` |
+| <img src="scenes/nebula-drift/poster.jpg" width="240" alt="Nebula Drift"> | `nebula-drift`<br>stars drifting past a nebula | ethereal | 8 s | `nebula_drift.py` |
+| <img src="scenes/aurora/poster.jpg" width="240" alt="Aurora"> | `aurora`<br>polar lights over a lake | nord | 10 s | `aurora.py` |
+| <img src="scenes/ocean-dusk/poster.jpg" width="240" alt="Ocean Dusk"> | `ocean-dusk`<br>rolling sea at dusk | kanagawa | 8 s | `ocean_dusk.py` |
+| <img src="scenes/crt-terminal/poster.jpg" width="240" alt="CRT Terminal"> | `crt-terminal`<br>phosphor terminal, scanlines | hackerman | 12 s | `crt_terminal.py` |
+| <img src="scenes/forge-sparks/poster.jpg" width="240" alt="Forge Sparks"> | `forge-sparks`<br>sparks over dark steel and red | blackshield, matte-black | 8 s | `forge_sparks.py` |
+| <img src="scenes/glyph-rain/poster.jpg" width="240" alt="Glyph Rain"> | `glyph-rain`<br>falling teal runes | glyphsmith, osaka-jade | 8 s | `glyph_rain.py` |
+| <img src="scenes/candlelight/poster.jpg" width="240" alt="Candlelight"> | `candlelight`<br>one calm, warm candle | lampstand, ristretto | 8 s | `candlelight.py` |
+| <img src="scenes/lofi-window/poster.jpg" width="240" alt="Lo-fi Window"> | `lofi-window`<br>rainy night window, desk, cat | gruvbox | 8 s | `lofi_window.py` |
+| <img src="scenes/vaporwave/poster.jpg" width="240" alt="Vaporwave"> | `vaporwave`<br>crystal, columns, checkered floor | rose-pine | 10 s | `vaporwave.py` |
+| <img src="scenes/breathe/poster.jpg" width="240" alt="Breathe"> | `breathe`<br>minimal breathing gradient | everforest | 10 s | `breathe.py` |
+
+A theme name picks its scene directly. If the theme name isn't listed, the
+`[match] background` key can still pick a scene by palette (see below). To use a
+preset with any theme, run `livewall set <scene>`.
+
 A scene is a folder with a `scene.toml`:
 
 ```toml
@@ -105,18 +131,36 @@ are kept. Delete those by hand if you want them gone.
 
 ## Rebuilding the media
 
-You need `ffmpeg`, `numpy` and `Pillow`, plus the Neon Horizon theme's `colors.toml`.
+You need `ffmpeg`, `numpy` and `Pillow`. Neon Horizon also needs its theme's
+`colors.toml`; the presets carry their palettes in their generators.
 Every loop renders frame *i* at t = i/N so it wraps without a jump. Check that with
-`generators/check_seam.py loop.mp4`: a seam no larger than the max frame step means no
-visible jump. The generators use `$LIVEWALL_THREADS` (default 2) for both render
-processes and ffmpeg. 4K takes about 2 GB per process and about 7 minutes with 2.
+`generators/check_seam.py loop.mp4`. It measures the last-to-first frame change at
+two scales. At 120x68 codec noise averages out and what's left is structure, and a
+seam no larger than the max frame step there means no visible jump. In near-still
+scenes every step is tiny, so a seam under a quarter of a grey level on average also
+passes. (At full detail, slow scenes show some keyframe noise at the seam. It's well
+under one grey level.) The script exits non-zero if a loop jumps. The generators use `$LIVEWALL_THREADS`
+(default 2) for both render processes and ffmpeg. 4K takes about 2 GB per process and
+about 7 minutes with 2.
 
 ```bash
 C=~/.config/omarchy/themes/neon-horizon/colors.toml
 nice -n 19 python3 generators/neon_horizon.py --colors $C --out scenes/neon-horizon/loop-1080p.mp4
 nice -n 19 python3 generators/neon_horizon.py --colors $C --size 3840x2160 --out scenes/neon-horizon/loop-2160p.mp4
 generators/make_previews.sh $C    # previews/{hero.png,preview.webm,preview.mp4}
+
+generators/build_presets.sh             # every preset: loop-1080p.mp4 + poster.jpg, then seam check
+generators/build_presets.sh aurora      # just one
+python3 generators/aurora.py --size 3840x2160 --out ~/aurora-4k.mp4   # a local 4K render
 ```
+
+The presets share `generators/loopkit.py` (tileable noise, looping blends, particles,
+the command line). Each loop is a single GOP, so the frame before the wrap has to
+match the keyframe after it. The settings that make that work: mbtree and psy-rd
+off, a high `ipratio` so the keyframe is no softer than the P-frames, a VBV buffer
+big enough not to starve it, and more bits over the last two seconds. Without that
+last part, slow changes in the quantizer's dead zone would pile up and land at the
+wrap.
 
 ## Tests
 
@@ -124,7 +168,10 @@ generators/make_previews.sh $C    # previews/{hero.png,preview.webm,preview.mp4}
 python3 -m unittest discover -s tests -v
 ```
 
-No Hyprland, mpv or battery is needed. Hyprland and sysfs are faked.
+No Hyprland, mpv or battery is needed. Hyprland and sysfs are faked. The tests
+also check every built-in scene: it parses, its files and poster exist, sizes are
+bounded, and its generator is present. With `numpy` and `Pillow` installed they
+also render each preset small and check that its loop closes.
 
 ## License
 
