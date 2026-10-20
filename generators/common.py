@@ -50,15 +50,25 @@ class Encoder:
     """Pipe raw RGB24 frames into ffmpeg and write an H.264 loop."""
 
     def __init__(self, out: Path, w: int, h: int, fps: int, crf: int = 20,
-                 preset: str = "slow", frames: int = 240, threads: int | None = None):
+                 preset: str = "slow", frames: int = 240, threads: int | None = None,
+                 maxrate: str | None = None, tune: str | None = "film",
+                 x264: str = "aq-mode=3:ipratio=1.0"):
         out.parent.mkdir(parents=True, exist_ok=True)
+        # maxrate caps the bitrate (VBV) so a busy scene cannot blow up the file size.
+        # The buffer is large so the single keyframe is not starved: a starved
+        # keyframe looks different from the last frame, and the seam shows.
+        vbv = []
+        if maxrate:
+            kbps = int(maxrate.rstrip("kK"))
+            vbv = ["-maxrate", f"{kbps}k", "-bufsize", f"{8 * kbps}k"]
+        tune_args = ["-tune", tune] if tune else []
         cmd = [
             "ffmpeg", "-y", "-loglevel", "error", "-threads", str(threads or default_threads()),
             "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(fps),
             "-i", "-",
             "-c:v", "libx264", "-threads", str(threads or default_threads()),
-            "-preset", preset, "-crf", str(crf),
-            "-tune", "film", "-x264-params", "aq-mode=3:ipratio=1.0",
+            "-preset", preset, "-crf", str(crf), *vbv,
+            *tune_args, "-x264-params", x264,
             "-pix_fmt", "yuv420p", "-g", str(frames), "-keyint_min", str(frames),
             "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
             "-movflags", "+faststart", "-an", str(out),
