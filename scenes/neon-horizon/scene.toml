@@ -1,0 +1,18 @@
+# Neon Horizon: a scrolling synthwave grid under a pulsing striped sun.
+# Rendered by generators/neon_horizon.py from themes/neon-horizon/colors.toml.
+name = "neon-horizon"
+title = "Neon Horizon"
+theme = "neon-horizon"
+fps = 30
+duration = 8.0
+poster = "poster.jpg"
+
+[video]
+1920x1080 = "loop-1080p.mp4"
+3840x2160 = "loop-2160p.mp4"
+
+# Fallback when the theme name is unknown: match the generated palette.
+[match]
+background = "#1a1029"
+accent = "#ff4fa3"
+cyan = "#4fe3f0"
